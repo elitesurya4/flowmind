@@ -8,7 +8,12 @@ from config.config import FlowmindConfig
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-origins = ["/*", "http://localhost", "http://localhost:3000", "http://localhost:5173/", "flowmind-sigma.vercel.app"]
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://flowmind-sigma.vercel.app"
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
