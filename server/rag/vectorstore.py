@@ -40,33 +40,30 @@ class FlowMindVectorStore:
         qdrant_client: QdrantClient,
         openai_client: OpenAIEmbeddings,
         collection_name: str,
-        step_data: dict
+        steps_data: List[dict]
     ):
         """
-        Embed and insert a validation step into Qdrant.
+        Embed and insert validation steps into Qdrant.
         """
-        # 1️⃣ Generate embedding
-        vector = openai_client.embed_query(step_data["embedding_text"])
-
-        # 2️⃣ Prepare payload (stored as metadata)
-        payload = {
-            "step_name": step_data["step_name"],
-            "description": step_data["description"],
-            "procedure": step_data["procedure"],
-            "expected_result": step_data["expected_result"],
-            "embedding_text": step_data["embedding_text"],
-            "type": "validation_step"
-        }
-
-        # 3️⃣ Create Qdrant point
-        point = PointStruct(
-            id=str(uuid4()),
-            vector=vector,
-            payload=payload
-        )
-
-        # 4️⃣ Insert into Qdrant
+        # Generate embedding
+        points = []
+        for step_data in steps_data:
+            vector = openai_client.embed_query(step_data["embedding_text"])
+            payload = {
+                "step_name": step_data["step_name"],
+                "description": step_data["description"],
+                "procedure": step_data["procedure"],
+                "expected_result": step_data["expected_result"],
+                "embedding_text": step_data["embedding_text"],
+                "type": "validation_step"
+            }
+            point = PointStruct(
+                id=str(uuid4()),
+                vector=vector,
+                payload=payload
+            )
+            points.append(point)
         qdrant_client.upsert(
             collection_name=collection_name,
-            points=[point]
+            points=points
         )

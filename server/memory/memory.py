@@ -12,6 +12,7 @@ from agent.models import ChatTurn
 from uuid import uuid4
 from typing import List
 from rag.vectorstore import FlowMindVectorStore
+from config.config import FlowmindConfig
 
 class FlowMindLongTermMemory:
     def __init__(self):
@@ -89,7 +90,7 @@ ASSISTANT:
 
 class FlowMindShortTermMemory:
     def __init__(self):
-        self.r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+        self.r = redis.Redis(host=FlowmindConfig.REDIS_HOST, port=FlowmindConfig.REDIS_PORT, password=FlowmindConfig.REDIS_PASSWORD, decode_responses=True)
     
     def recall(self, session_id):
         data = self.r.lrange(session_id, 0, 10)
