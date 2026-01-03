@@ -22,7 +22,7 @@ def chat(state: AgentState):
 @app.post("/insert_validation_steps")
 def insert_validation_steps(steps: List[ValidationStep]):
     vectorstore = FlowMindVectorStore()
-    FlowMindVectorStore.insert_validation_steps(
+    FlowMindVectorStore.insert_validation_step(
         qdrant_client=vectorstore.client,
         openai_client=vectorstore.embeddings,
         collection_name=FlowmindConfig.QDRANT_COLLECTION_NAME,
