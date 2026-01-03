@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
 import { Send, Menu, X, MessageSquare, Clock, CheckCircle2, FileText } from 'lucide-react';
 
 const FlowmindAssistant = () => {
@@ -35,40 +36,36 @@ const FlowmindAssistant = () => {
     setInput('');
     setIsLoading(true);
 
+    // Generate a unique session_id (e.g., using timestamp)
+    const sessionId = `flowmind_${Date.now()}`;
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Use axios for the API request
+      const response = await axios.post('https://flowmind-vwu3.onrender.com/chat', {
+        session_id: sessionId,
+        user_query: input
+      });
+
+      const data = response.data;
+
       const botResponse = {
         id: Date.now() + 1,
         type: 'assistant',
-        content: {
-          procedure: [
-            {
-              step: 1,
-              title: 'Data Collection',
-              description: 'Gather all necessary input data and system requirements',
-              expectedResult: 'Complete dataset with all required fields populated'
-            },
-            {
-              step: 2,
-              title: 'Validation Checks',
-              description: 'Run automated validation rules on collected data',
-              expectedResult: 'All validation rules pass with zero critical errors'
-            },
-            {
-              step: 3,
-              title: 'System Integration',
-              description: 'Integrate validated data into the target system',
-              expectedResult: 'Successful data integration with confirmation logs'
-            }
-          ],
-          summary: 'Computer system validation process completed successfully'
-        },
+        content: data,
         timestamp: new Date().toISOString()
       };
 
       setMessages(prev => [...prev, botResponse]);
     } catch (error) {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now() + 2,
+          type: 'assistant',
+          content: { summary: 'Sorry, there was an error processing your request.' },
+          timestamp: new Date().toISOString()
+        }
+      ]);
       console.error('Error sending message:', error);
     } finally {
       setIsLoading(false);
@@ -79,76 +76,48 @@ const FlowmindAssistant = () => {
     setShowHistory(false);
   };
 
-  const StructuredResponse = ({ content }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {content.procedure && content.procedure.map((step) => (
-        <div key={step.step} style={{
-          backgroundColor: '#ffffff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
-          padding: '16px',
-          boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)'
-        }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              flexShrink: 0
-            }}>
-              {step.step}
-            </div>
-            <div style={{ flex: 1 }}>
-              <h4 style={{ fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
-                {step.title}
-              </h4>
-              <p style={{ color: '#4b5563', fontSize: '14px', marginBottom: '8px' }}>
-                {step.description}
-              </p>
+  const StructuredResponse = ({ content }) => {
+    // Support both {procedure: [...], summary: "..."} and {steps: [...], ...} API shapes
+    const steps = content.plan.steps.action || content.plan.steps || [];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {steps.map((step, idx) => (
+          <div key={step.step_no || step.step || idx} style={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            padding: '16px',
+            boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)'
+          }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
               <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                borderRadius: '50%',
                 display: 'flex',
-                gap: '8px',
-                backgroundColor: '#f0fdf4',
-                border: '1px solid #86efac',
-                borderRadius: '4px',
-                padding: '8px',
-                alignItems: 'flex-start'
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                flexShrink: 0
               }}>
-                <CheckCircle2 style={{
-                  width: '16px',
-                  height: '16px',
-                  color: '#16a34a',
-                  marginTop: '2px',
-                  flexShrink: 0
-                }} />
-                <p style={{ fontSize: '14px', color: '#166534' }}>
-                  <span style={{ fontWeight: '600' }}>Expected Result:</span> {step.expectedResult}
+                {step.step_no || step.step || idx + 1}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: '#4b5563', fontSize: '14px', marginBottom: '8px' }}>
+                  <strong>Action:</strong> {step.action || step.title || ''}
+                </p>
+                <p style={{ color: '#166534', fontSize: '14px' }}>
+                  <strong>Expected Result:</strong> {step.expected_result || step.expectedResult || ''}
                 </p>
               </div>
             </div>
           </div>
-        </div>
-      ))}
-      {content.summary && (
-        <div style={{
-          backgroundColor: '#eff6ff',
-          border: '1px solid #bfdbfe',
-          borderRadius: '8px',
-          padding: '12px'
-        }}>
-          <p style={{ fontSize: '14px', color: '#1e40af', fontWeight: '500' }}>
-            {content.summary}
-          </p>
-        </div>
-      )}
-    </div>
-  );
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div style={{
