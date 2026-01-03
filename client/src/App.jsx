@@ -3,16 +3,23 @@ import axios from 'axios';
 import { Send, Menu, X, MessageSquare, Clock, CheckCircle2, FileText } from 'lucide-react';
 
 const FlowmindAssistant = () => {
-  const [messages, setMessages] = useState([]);
+  const [sessions, setSessions] = useState([
+    {
+      id: `session_${Date.now()}`,
+      title: 'New Chat',
+      timestamp: new Date().toLocaleString(),
+      preview: '',
+      messages: []
+    }
+  ]);
+  const [currentSessionId, setCurrentSessionId] = useState(sessions[0].id);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [chatHistory] = useState([
-    { id: '1', title: 'CSV Validation Process', timestamp: '2024-12-29 14:30', preview: 'How to validate CSV files...' },
-    { id: '2', title: 'Database Migration Steps', timestamp: '2024-12-28 10:15', preview: 'Steps for migrating database...' },
-    { id: '3', title: 'API Integration Testing', timestamp: '2024-12-27 16:45', preview: 'Testing API endpoints...' }
-  ]);
   const messagesEndRef = useRef(null);
+
+  const currentSession = sessions.find(s => s.id === currentSessionId);
+  const messages = currentSession ? currentSession.messages : [];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -32,17 +39,24 @@ const FlowmindAssistant = () => {
       timestamp: new Date().toISOString()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setSessions(prev =>
+      prev.map(session =>
+        session.id === currentSessionId
+          ? {
+              ...session,
+              messages: [...session.messages, userMessage],
+              preview: input,
+              timestamp: new Date().toLocaleString()
+            }
+          : session
+      )
+    );
     setInput('');
     setIsLoading(true);
 
-    // Generate a unique session_id (e.g., using timestamp)
-    const sessionId = `flowmind_${Date.now()}`;
-
     try {
-      // Use axios for the API request
       const response = await axios.post('https://flowmind-vwu3.onrender.com/chat', {
-        session_id: sessionId,
+        session_id: currentSessionId,
         user_query: input
       });
 
@@ -55,17 +69,35 @@ const FlowmindAssistant = () => {
         timestamp: new Date().toISOString()
       };
 
-      setMessages(prev => [...prev, botResponse]);
+      setSessions(prev =>
+        prev.map(session =>
+          session.id === currentSessionId
+            ? {
+                ...session,
+                messages: [...session.messages, botResponse]
+              }
+            : session
+        )
+      );
     } catch (error) {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now() + 2,
-          type: 'assistant',
-          content: { summary: 'Sorry, there was an error processing your request.' },
-          timestamp: new Date().toISOString()
-        }
-      ]);
+      setSessions(prev =>
+        prev.map(session =>
+          session.id === currentSessionId
+            ? {
+                ...session,
+                messages: [
+                  ...session.messages,
+                  {
+                    id: Date.now() + 2,
+                    type: 'assistant',
+                    content: { summary: 'Sorry, there was an error processing your request.' },
+                    timestamp: new Date().toISOString()
+                  }
+                ]
+              }
+            : session
+        )
+      );
       console.error('Error sending message:', error);
     } finally {
       setIsLoading(false);
@@ -73,7 +105,22 @@ const FlowmindAssistant = () => {
   };
 
   const loadHistorySession = (sessionId) => {
+    setCurrentSessionId(sessionId);
     setShowHistory(false);
+  };
+
+  const handleNewChat = () => {
+    const newSession = {
+      id: `session_${Date.now()}`,
+      title: 'New Chat',
+      timestamp: new Date().toLocaleString(),
+      preview: '',
+      messages: []
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setCurrentSessionId(newSession.id);
+    setShowHistory(false);
+    setInput('');
   };
 
   const StructuredResponse = ({ content }) => {
@@ -179,7 +226,7 @@ const FlowmindAssistant = () => {
           flexDirection: 'column',
           gap: '8px'
         }}>
-          {chatHistory.map((session) => (
+          {sessions.map((session) => (
             <button
               key={session.id}
               onClick={() => loadHistorySession(session.id)}
@@ -189,12 +236,12 @@ const FlowmindAssistant = () => {
                 padding: '12px',
                 borderRadius: '8px',
                 border: '1px solid #e5e7eb',
-                backgroundColor: '#ffffff',
+                backgroundColor: session.id === currentSessionId ? '#f3f4f6' : '#ffffff',
                 cursor: 'pointer',
                 transition: 'background-color 0.2s'
               }}
               onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = session.id === currentSessionId ? '#f3f4f6' : '#ffffff'}
             >
               <div style={{
                 fontWeight: '500',
@@ -241,6 +288,7 @@ const FlowmindAssistant = () => {
             fontWeight: '500',
             transition: 'background-color 0.2s'
           }}
+          onClick={handleNewChat}
           onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
           onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
           >
