@@ -48,14 +48,17 @@ class FlowMindVectorStore:
         # Generate embedding
         points = []
         for step_data in steps_data:
-            vector = openai_client.embed_query(step_data["embedding_text"])
+            embedding_input = f"{step_data['embedding_text']} {step_data['use_case']}"
+            vector = openai_client.embed_query(embedding_input)
             payload = {
+                "step_order": step_data["step_order"],
                 "step_name": step_data["step_name"],
                 "description": step_data["description"],
                 "procedure": step_data["procedure"],
                 "expected_result": step_data["expected_result"],
+                "use_case": step_data["use_case"],
                 "embedding_text": step_data["embedding_text"],
-                "type": "validation_step"
+                "type": step_data["type"]
             }
             point = PointStruct(
                 id=str(uuid4()),

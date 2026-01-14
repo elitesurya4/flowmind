@@ -23,10 +23,13 @@ app.add_middleware(
 )
 
 class ValidationStep(BaseModel):
+    step_order: int
     step_name: str
     description: str
     procedure: str
     expected_result: str
+    use_case: str
+    type: str
     embedding_text: str
 
 @app.post("/chat")
