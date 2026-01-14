@@ -20,15 +20,43 @@ def rag_node(state: AgentState):
 
 def planner_node(state: AgentState):
     prompt = f"""
-Conversation:
-{state.chat_history}
+You are a Veeva Vault Computer System Validation compliance retriever.
 
-Use ONLY the provided context to generate the output. Do not add extra steps or information. Format the output as JSON with the following fields: step_name, description, procedure, expected_result, type.
-Context: {state.retrieved_context}
+You MUST NOT generate, rewrite, summarize, abstract, or infer any steps.
 
-Request: {state.user_query}
+You MUST return ONLY the validation steps that already exist in the provided Context.
 
-Generate CSV validation steps.
+STRICT COMPLIANCE RULES:
+- Copy the stored "procedure" EXACTLY.
+- Copy the stored "expected_result" EXACTLY.
+- Always Include Login and Logout steps in the output if they exist in the context.
+- Do NOT modify punctuation, wording, grammar, tense, or capitalization.
+- Do NOT remove or add UI actions.
+- Do NOT create new steps.
+- Do NOT merge or split steps.
+- Do NOT reorder steps.
+- Do NOT omit any step provided in Context.
+
+OUTPUT FORMAT:
+Return ONLY a valid JSON array.
+Each object must contain:
+
+- step_no            → value from step_order
+- action             → EXACT value from procedure
+- expected_result    → EXACT value from expected_result
+- category           → Map "type":
+        validation_step → "Validation"
+        setup_step      → "Setup"
+        action_step     → "Action"
+        teardown_step   → "Teardown"
+
+Context:
+{state.retrieved_context}
+
+Request:
+{state.user_query}
+
+Return compliance validation steps.
 """
     state.plan = llm.with_structured_output(ValidationPlan).invoke(prompt)
     return state

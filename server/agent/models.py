@@ -7,7 +7,7 @@ class ChatTurn(BaseModel):
 
 class ValidationStep(BaseModel):
     step_no: int
-    action: str
+    action: str    # Procedure renamed to action for clarity
     expected_result: str
     category: str
 
